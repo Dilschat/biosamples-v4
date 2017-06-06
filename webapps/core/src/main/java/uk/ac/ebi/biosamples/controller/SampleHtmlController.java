@@ -1,19 +1,5 @@
 package uk.ac.ebi.biosamples.controller;
 
-import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -31,14 +17,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
-
+import uk.ac.ebi.biosamples.model.JsonLDSample;
 import uk.ac.ebi.biosamples.model.Sample;
 import uk.ac.ebi.biosamples.model.SampleFacet;
 import uk.ac.ebi.biosamples.model.SampleFacetValue;
-import uk.ac.ebi.biosamples.service.FacetService;
-import uk.ac.ebi.biosamples.service.FilterService;
-import uk.ac.ebi.biosamples.service.SamplePageService;
-import uk.ac.ebi.biosamples.service.SampleService;
+import uk.ac.ebi.biosamples.service.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
 
 /**
  * Primary controller for HTML operations.
@@ -56,13 +46,18 @@ public class SampleHtmlController {
 
 	private final SampleService sampleService;
 	private final SamplePageService samplePageService;
+	private final ConvertionService convertionService;
 	private final FacetService facetService;
 	private final FilterService filterService;
 
-	public SampleHtmlController(SampleService sampleService, 
-			SamplePageService samplePageService,FacetService facetService, FilterService filterService) {
+	public SampleHtmlController(SampleService sampleService,
+								SamplePageService samplePageService,
+								ConvertionService convertionService,
+								FacetService facetService,
+								FilterService filterService) {
 		this.sampleService = sampleService;
 		this.samplePageService = samplePageService;
+		this.convertionService = convertionService;
 		this.facetService = facetService;
 		this.filterService = filterService;
 	}
@@ -203,7 +198,9 @@ public class SampleHtmlController {
 		response.setHeader(HttpHeaders.LAST_MODIFIED, String.valueOf(sample.getUpdate().toEpochSecond(ZoneOffset.UTC)));
 		response.setHeader(HttpHeaders.ETAG, String.valueOf(sample.hashCode()));
 
+		JsonLDSample jsonLDSample = convertionService.sampleToJsonLD(sample);
 		model.addAttribute("sample", sample);
+		model.addAttribute("jsonLD", jsonLDSample);
 		return "sample";
 	}
 }
