@@ -1,12 +1,5 @@
 package uk.ac.ebi.biosamples;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Optional;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.hateoas.Resource;
@@ -16,6 +9,13 @@ import uk.ac.ebi.biosamples.model.Attribute;
 import uk.ac.ebi.biosamples.model.ExternalReference;
 import uk.ac.ebi.biosamples.model.Relationship;
 import uk.ac.ebi.biosamples.model.Sample;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 @Component
 public class RestIntegration extends AbstractIntegration {

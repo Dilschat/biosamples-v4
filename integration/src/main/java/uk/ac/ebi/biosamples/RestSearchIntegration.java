@@ -1,13 +1,14 @@
 package uk.ac.ebi.biosamples;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.hateoas.Resource;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.biosamples.client.BioSamplesClient;
 import uk.ac.ebi.biosamples.model.Sample;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class RestSearchIntegration extends AbstractIntegration {
