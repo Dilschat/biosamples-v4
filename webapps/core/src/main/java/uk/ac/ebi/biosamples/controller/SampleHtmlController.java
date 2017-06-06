@@ -201,6 +201,7 @@ public class SampleHtmlController {
 		JsonLDSample jsonLDSample = convertionService.sampleToJsonLD(sample);
 		model.addAttribute("sample", sample);
 		model.addAttribute("jsonLD", jsonLDSample);
+
 		return "sample";
 	}
 }
