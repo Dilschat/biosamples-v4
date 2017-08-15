@@ -5,6 +5,13 @@
 	<artifactId>webapps</artifactId>
 
 	<packaging>pom</packaging>
+	
+    <parent>
+		<groupId>uk.ac.ebi.biosamples</groupId>
+		<artifactId>biosamples</artifactId>
+		<version>4.0.0-SNAPSHOT</version>
+	</parent>
+	
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -12,15 +19,19 @@
         </dependency>
     </dependencies>
 
-    <parent>
-		<groupId>uk.ac.ebi.biosamples</groupId>
-		<artifactId>biosamples</artifactId>
-		<version>4.0.0-SNAPSHOT</version>
-	</parent>
+	<profiles>
+		<profile>
+		<!-- this profile contains references to internal-only artifacts -->
+		<!-- i.e. oracle drivers that cannot be redistributed in public -->
+			<id>embl-ebi</id>
+			<modules>
+		<module>sampletab</module>
+			</modules>
+		</profile>
+	</profiles>
 
 	<modules>
 		<module>core</module>
-		<module>sampletab</module>
 		<module>legacyxml</module>
 	</modules>
 </project>

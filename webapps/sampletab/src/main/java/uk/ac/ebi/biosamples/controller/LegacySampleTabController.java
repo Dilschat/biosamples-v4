@@ -31,6 +31,7 @@ import uk.ac.ebi.arrayexpress2.sampletab.parser.SampleTabParser;
 import uk.ac.ebi.arrayexpress2.sampletab.validator.SampleTabValidator;
 import uk.ac.ebi.biosamples.model.v1.Outcome;
 import uk.ac.ebi.biosamples.model.v1.SampleTabRequest;
+import uk.ac.ebi.biosamples.service.ApiKeyService;
 import uk.ac.ebi.biosamples.service.SampleTabService;
 
 @RestController
@@ -41,14 +42,24 @@ public class LegacySampleTabController {
 	@Autowired
 	private SampleTabService sampleTabService;
 	
-    @PostMapping(value = "/v1/json/ac")
+	@Autowired
+	private ApiKeyService apiKeyService;
+	
+    @PostMapping(value = "/api/v1/json/ac")
     public @ResponseBody Outcome doAccession(@RequestBody SampleTabRequest sampletab, String apikey) {
-    	    	
-
+    	return process(sampletab, apikey, false);
+    }
+	
+    @PostMapping(value = "/api/v1/json/sb")
+    public @ResponseBody Outcome doSubmission(@RequestBody SampleTabRequest sampletab, String apikey) {
+    	return process(sampletab, apikey, true);
+    }
+    	
+	private Outcome process(SampleTabRequest sampletab, String apikey, boolean submission) {
         String keyOwner = null;
         if (apikey != null) {
 	        try { 
-	            //keyOwner = apiKey.getAPIKeyOwner(apikey);
+	            keyOwner = apiKeyService.getApiKeyOwner(apikey);
 	        } catch (IllegalArgumentException e) {
 	            //invalid API key, return errors
                 Outcome o = new Outcome();
@@ -95,21 +106,30 @@ public class LegacySampleTabController {
             }
 
             //assign accessions to sampletab object
+            
+            
+            //TODO this needs to be smarter 
+            // - check if existing accession exists first
+            // - check if there are samples with same name & owner
 
             //save the old release date
             Date oldReleaseDate = sampledata.msi.submissionReleaseDate;
             
-            //set release date to 100 years in future
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date()); // Now use today date.
-            c.add(Calendar.DATE, 100*365); // Adds 100 years
-            sampledata.msi.submissionReleaseDate = c.getTime();
+            if (!submission) {
+	            //set release date to 100 years in future
+	            Calendar c = Calendar.getInstance();
+	            c.setTime(new Date()); // Now use today date.
+	            c.add(Calendar.DATE, 100*365); // Adds 100 years
+	            sampledata.msi.submissionReleaseDate = c.getTime();
+            }
             
             //persist it then put the new accessions back into the sampletab
             sampledata = sampleTabService.saveSampleTab(sampledata);
             
             //reset the date to the old one
-            sampledata.msi.submissionReleaseDate = oldReleaseDate;            
+            if (!submission) {
+            	sampledata.msi.submissionReleaseDate = oldReleaseDate;
+            }
             
             //return the accessioned file, and any generated errors            
             outcome = new Outcome(sampledata, errorItems);
@@ -142,8 +162,11 @@ public class LegacySampleTabController {
         return outcome;
     }
     
+    
+    
+    
                 
-    @PostMapping(value = "/v1/json/va")
+    @PostMapping(value = "/api/v1/json/va")
     public @ResponseBody Outcome doValidation(@RequestBody SampleTabRequest sampletab) {
         //setup parser to listen for errors
         SampleTabParser<SampleData> parser = new SampleTabParser<SampleData>(new SampleTabValidator());
@@ -188,7 +211,7 @@ public class LegacySampleTabController {
      * directly from memory, so it is bounced back off the server through
      * this method.
      */
-    @PostMapping(value = "/echo")
+    @PostMapping(value = "/api/echo")
     public void echo(String input, HttpServletResponse response) throws IOException {
         //set it to be marked as a download file
         //response.setContentType("application/octet-stream");

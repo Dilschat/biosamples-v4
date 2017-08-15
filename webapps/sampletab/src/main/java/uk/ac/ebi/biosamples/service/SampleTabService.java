@@ -39,12 +39,12 @@ public class SampleTabService {
 	}
 	
 	public SampleData saveSampleTab(SampleData sampleData) {
+		LocalDateTime release = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionReleaseDate.getTime()), ZoneId.of("UTC"));
+		LocalDateTime update = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionUpdateDate.getTime()), ZoneId.of("UTC"));
+
 		for (SampleNode sampleNode : sampleData.scd.getNodes(SampleNode.class)) {
 			String accession = sampleNode.getSampleAccession();
-			String name = sampleNode.getNodeName();
-			
-			LocalDateTime release = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionReleaseDate.getTime()), ZoneId.of("UTC"));
-			LocalDateTime update = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionUpdateDate.getTime()), ZoneId.of("UTC"));
+			String name = sampleNode.getNodeName();			
 
 			SortedSet<Attribute> attributes = new TreeSet<>();
 			SortedSet<Relationship> relationships = new TreeSet<>();
@@ -71,9 +71,6 @@ public class SampleTabService {
 		for (GroupNode groupNode : sampleData.scd.getNodes(GroupNode.class)) {
 			String accession = groupNode.getGroupAccession();
 			String name = groupNode.getNodeName();
-			LocalDateTime release = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionReleaseDate.getTime()), ZoneId.systemDefault());
-			LocalDateTime update = LocalDateTime.ofInstant(Instant.ofEpochMilli(sampleData.msi.submissionUpdateDate.getTime()), ZoneId.systemDefault());
-
 			SortedSet<Attribute> attributes = new TreeSet<>();
 			SortedSet<Relationship> relationships = new TreeSet<>();
 			SortedSet<ExternalReference> externalReferences = new TreeSet<>();
