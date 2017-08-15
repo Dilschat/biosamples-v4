@@ -1,13 +1,19 @@
 package uk.ac.ebi.biosamples.solr.model;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.solr.core.mapping.Dynamic;
 import org.springframework.data.solr.core.mapping.Indexed;
 import org.springframework.data.solr.core.mapping.SolrDocument;
 import uk.ac.ebi.biosamples.solr.service.SolrSampleService;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
 
 
 @SolrDocument(solrCoreName = "samples")
@@ -74,11 +80,12 @@ public class SolrSample {
 	
 	/**
 	 * This field is required to get a list of attribute to use for faceting.
+	 * It includes attributes and relationships of the sample
 	 * Since faceting does not require it to be stored, it wont be to save space.
 	 * 
 	 */
-	@Indexed(name="attributetypes_ss", copyTo={"autocomplete_ss",})
-	protected List<String> attributeTypes;
+	@Indexed(name="facetfields_ss", copyTo={"autocomplete_ss",})
+	protected List<String> facetFields;
 	//TODO consider renaming as used only for faceting
 	
 
@@ -180,8 +187,8 @@ public class SolrSample {
 		sample.name = name;
 		sample.release =  release;
 		sample.update = update;
-		
-		
+
+
 		sample.attributeValues = new HashMap<>();
 		sample.attributeIris = new HashMap<>();
 		sample.attributeUnits = new HashMap<>();
@@ -191,71 +198,74 @@ public class SolrSample {
 		if (attributeValues != null) {
 			for (String key : attributeValues.keySet()) {
 				//solr only allows alphanumeric field types
-				String base64Key;
-				try {
-					base64Key = Base64.getEncoder().encodeToString(key.getBytes("UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
-				}
-				String safeKey = base64Key.replaceAll("=", "_");
-				sample.attributeValues.put(safeKey, attributeValues.get(key));
+				sample.attributeValues.put(SolrSampleService.valueToSafeField(key), attributeValues.get(key));
 			}
 		}
 
 		if (attributeIris != null) {
 			for (String key : attributeIris.keySet()) {
 				//solr only allows alphanumeric field types
-				String base64Key;
-				try {
-					base64Key = Base64.getEncoder().encodeToString(key.getBytes("UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
-				}
-				String safeKey = base64Key.replaceAll("=", "_");
-				sample.attributeIris.put(safeKey, attributeIris.get(key));
+				sample.attributeIris.put(SolrSampleService.valueToSafeField(key), attributeIris.get(key));
 			}
 		}
 
 		if (attributeUnits != null) {
 			for (String key : attributeUnits.keySet()) {
 				//solr only allows alphanumeric field types
-				String base64Key;
-				try {
-					base64Key = Base64.getEncoder().encodeToString(key.getBytes("UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
-				}
-				String safeKey = base64Key.replaceAll("=", "_");
-				sample.attributeUnits.put(safeKey, attributeUnits.get(key));
+				sample.attributeUnits.put(SolrSampleService.valueToSafeField(key), attributeUnits.get(key));
 			}
 		}
 
-		//TODO handle relationships too
-		//but how to do inverse?
 		if (outgoingRelationships != null) {
-
-			// TODO Check if is necessary to convert to Base64 also for relationships
-			sample.outgoingRelationships.putAll(outgoingRelationships);
+            for (String key : outgoingRelationships.keySet()) {
+                sample.outgoingRelationships.put(SolrSampleService.valueToSafeField(key), outgoingRelationships.get(key));
+            }
 		}
 
 		if (incomingRelationships != null) {
-
-			// TODO Check if is necessary to convert to Base64 also for relationships
-			sample.incomingRelationships.putAll(incomingRelationships);
+		    for (String key: incomingRelationships.keySet()) {
+		        sample.incomingRelationships.put(SolrSampleService.valueToSafeField(key), incomingRelationships.get(key));
+            }
 		}
 
 		//TODO validate maps
-		sample.attributeTypes = null;
+		sample.facetFields = null;
 		if (attributeValues != null && attributeValues.keySet().size() > 0) {
 			List<String> attributeTypes = new ArrayList<>();
 			for (String attributeType : attributeValues.keySet()) {
-				String field = SolrSampleService.attributeTypeToField(attributeType);
+				String field = SolrSampleService.valueToSafeField(attributeType, "_av_ss");
 				attributeTypes.add(field);
 			}
 			Collections.sort(attributeTypes);
-			sample.attributeTypes = attributeTypes;
-		}		
-		
+			sample.facetFields = attributeTypes;
+		}
+
+		if (outgoingRelationships != null && outgoingRelationships.keySet().size() > 0) {
+			List<String> outgoingRelationshipTypes = new ArrayList<>();
+			for (String key: outgoingRelationships.keySet()) {
+                String field = SolrSampleService.valueToSafeField(key, "_or_ss");
+				outgoingRelationshipTypes.add(field);
+			}
+
+			Collections.sort(outgoingRelationshipTypes);
+			if (sample.facetFields != null) {
+				sample.facetFields.addAll(outgoingRelationshipTypes);
+			}
+		}
+
+		if (incomingRelationships != null && incomingRelationships.keySet().size() > 0) {
+			List<String> incomingRelationshipTypes = new ArrayList<>();
+			for (String key: incomingRelationships.keySet()) {
+                String field = SolrSampleService.valueToSafeField(key, "_ir_ss");
+				incomingRelationshipTypes.add(field);
+			}
+
+			Collections.sort(incomingRelationshipTypes);
+			if (sample.facetFields != null) {
+				sample.facetFields.addAll(incomingRelationshipTypes);
+			}
+		}
+
 		//copy into the other fields
 		//this should be done in a copyfield but that doesn't work for some reason?
 		sample.autocompleteTerms = new ArrayList<>();
@@ -267,4 +277,5 @@ public class SolrSample {
 		}
 		return sample;
 	}
+
 }

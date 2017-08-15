@@ -30,6 +30,10 @@ public class SolrSampleService {
 
 	private final SolrSampleRepository solrSampleRepository;
 	
+	//maximum time allowed for a solr search in s
+	//TODO application.properties this
+	private static final int TIMEALLOWED = 30;
+	
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
 	public SolrSampleService(SolrSampleRepository solrSampleRepository) {
@@ -62,6 +66,7 @@ public class SolrSampleService {
 			filterQuery.addCriteria(new Criteria("update_dt").between(after.format(solrFormatter), "*"));
 		}
 		query.addFilterQuery(filterQuery);
+		query.setTimeAllowed(TIMEALLOWED*1000); 
 		
 		// return the samples from solr that match the query
 		return solrSampleRepository.findByQuery(query);
@@ -88,6 +93,7 @@ public class SolrSampleService {
 			filterQuery.addCriteria(new Criteria("update_dt").between(after, before));
 		}
 		query.addFilterQuery(filterQuery);
+		query.setTimeAllowed(TIMEALLOWED*1000); 
 		
 		Page<FacetFieldEntry> facetFields = solrSampleRepository.getFacetFields(query, facetPageable);
 
@@ -96,7 +102,7 @@ public class SolrSampleService {
 		for (FacetFieldEntry ffe : facetFields) {
 			log.info("Putting "+ffe.getValue()+" with count "+ffe.getValueCount());
 			facetFieldList.add(ffe.getValue());				
-			builder.addFacet(SolrSampleService.fieldToAttributeType(ffe.getValue()), ffe.getValueCount());
+			builder.addFacet(SolrSampleService.safeFieldToValue(ffe.getValue()), ffe.getValueCount());
 		}
 		
 		//if there are no facets available (e.g. no samples)
@@ -111,7 +117,7 @@ public class SolrSampleService {
 			//for each value, put the number of them into this facets map
 			for (FacetFieldEntry ffe : facetPage.getFacetResultPage(field)) {
 				log.info("Adding "+field.getName()+" : "+ffe.getValue()+" with count "+ffe.getValueCount());					
-				builder.addFacetValue(SolrSampleService.fieldToAttributeType(field.getName()), ffe.getValue(), ffe.getValueCount());
+				builder.addFacetValue(SolrSampleService.safeFieldToValue(field.getName()), ffe.getValue(), ffe.getValueCount());
 			}
 		}
 		
@@ -141,6 +147,7 @@ public class SolrSampleService {
 		facetOptions.setPageable(new PageRequest(0, maxSuggestions));
 		facetOptions.setFacetPrefix(autocompletePrefix);
 		query.setFacetOptions(facetOptions);
+		query.setTimeAllowed(TIMEALLOWED*1000); 
 		
 		FacetPage<?> facetPage = solrSampleRepository.findByFacetQuery(query);
 		
@@ -164,7 +171,7 @@ public class SolrSampleService {
 		for (String facetType : filters.keySet()) {
 			Criteria facetCriteria = null;
 			
-			String facetField = attributeTypeToField(facetType);
+			String facetField = valueToSafeField(facetType, "_av_ss");
 			for (String facatValue : filters.get(facetType)) {
 				if (facatValue == null) {
 					//no specific value, check if its not null
@@ -190,7 +197,7 @@ public class SolrSampleService {
 	}
 	
 	
-	public static String attributeTypeToField(String type) {
+	public static String valueToSafeField(String type, String suffix) {
 		//solr only allows alphanumeric field types
 		try {
 			type = Base64.getEncoder().encodeToString(type.getBytes("UTF-8"));
@@ -199,20 +206,40 @@ public class SolrSampleService {
 		}
 		//although its base64 encoded, that include = which solr doesn't allow
 		type = type.replaceAll("=", "_");
-		
-		type = type+"_av_ss";
+
+		if (!suffix.isEmpty()) {
+			type = type+suffix;
+		}
 		return type;
 	}
-	
-	public static String fieldToAttributeType(String field) {
-		//strip _ss
-		if (field.endsWith("_ss")) {
-			field = field.substring(0, field.length()-3);			
-		}		
-		//strip _av
-		if (field.endsWith("_av")) {
-			field = field.substring(0, field.length()-3);			
-		}		
+
+	public static String valueToSafeField(String type) {
+		return valueToSafeField(type, "");
+	}
+
+	public static String safeFieldToValue(String field, String suffix) {
+		boolean inverse = false;
+        if (!suffix.isEmpty()) {
+        	field = field.substring(0, field.length() - suffix.length());
+		} else {
+            // Provide a default functionality
+    		if (field.endsWith("_ss")) {
+    			field = field.substring(0, field.length()-3);
+    		}
+    		if (field.endsWith("_av")) {
+    			field = field.substring(0, field.length()-3);
+    		}
+
+    		if (field.endsWith("_or")) {
+    			field = field.substring(0, field.length()-3);
+			}
+
+			if (field.endsWith("_ir")) {
+    			inverse = true;
+    			field = field.substring(0, field.length() - 3);
+			}
+
+		}
 
 		//although its base64 encoded, that include = which solr doesn't allow
 		field = field.replace("_", "=");
@@ -221,7 +248,13 @@ public class SolrSampleService {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-		
+		if (inverse) {
+			field = field+" (inverse)";
+		}
 		return field;
+	}
+
+	public static String safeFieldToValue(String field) {
+		return safeFieldToValue(field, "");
 	}
 }
