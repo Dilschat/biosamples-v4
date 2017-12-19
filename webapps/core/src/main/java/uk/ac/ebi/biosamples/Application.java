@@ -3,6 +3,8 @@ package uk.ac.ebi.biosamples;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.web.DefaultErrorAttributes;
+import org.springframework.boot.autoconfigure.web.ErrorAttributes;
 import org.springframework.boot.web.support.SpringBootServletInitializer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -76,4 +78,5 @@ public class Application extends SpringBootServletInitializer {
     			mongoSampleToSampleConverter, mongoProperties.getAccessionPrefix(), 
     			mongoProperties.getAccessionMinimum(), mongoProperties.getAcessionQueueSize());
     }
+
 }
