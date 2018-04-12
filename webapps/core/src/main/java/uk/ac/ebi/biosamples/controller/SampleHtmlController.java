@@ -1,11 +1,26 @@
 package uk.ac.ebi.biosamples.controller;
 
+import java.net.URI;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import uk.ac.ebi.biosamples.BioSamplesProperties;
 import uk.ac.ebi.biosamples.model.JsonLDDataCatalog;
 import uk.ac.ebi.biosamples.model.JsonLDDataset;
 import uk.ac.ebi.biosamples.model.Sample;
@@ -48,19 +65,22 @@ public class SampleHtmlController {
 	private final FacetService facetService;
 	private final FilterService filterService;
 	private final BioSamplesAapService bioSamplesAapService;
+	private final BioSamplesProperties bioSamplesProperties;
 
 	public SampleHtmlController(SampleService sampleService,
 			SamplePageService samplePageService,
 			JsonLDService jsonLDService,
 			FacetService facetService,
 			FilterService filterService,
-			BioSamplesAapService bioSamplesAapService) {
+			BioSamplesAapService bioSamplesAapService,
+			BioSamplesProperties bioSamplesProperties) {
 		this.sampleService = sampleService;
 		this.samplePageService = samplePageService;
 		this.jsonLDService = jsonLDService;
 		this.facetService = facetService;
 		this.filterService = filterService;
 		this.bioSamplesAapService = bioSamplesAapService;
+		this.bioSamplesProperties = bioSamplesProperties;
 	}
 
 	@GetMapping(value = "/")
@@ -114,7 +134,7 @@ public class SampleHtmlController {
 		Collections.sort(filtersList);
 
 		JsonLDDataset jsonLDDataset = jsonLDService.getBioSamplesDataset();
-		
+
 		model.addAttribute("text", text);
 		model.addAttribute("start", start);
 		model.addAttribute("rows", rows);
@@ -123,10 +143,19 @@ public class SampleHtmlController {
 		model.addAttribute("filters", filtersList);
 		model.addAttribute("paginations", getPaginations(pageSample, uriBuilder));
 		model.addAttribute("jsonLD", jsonLDService.jsonLDToString(jsonLDDataset));
-				
+
 		//TODO add "clear all facets" button
 		//TODO title of webpage
 		
+
+		//Note - EBI load balancer does cache but doesn't add age header, so clients could cache up to twice this age
+		CacheControl cacheControl = CacheControl.maxAge(bioSamplesProperties.getBiosamplesCorePageCacheMaxAge(), TimeUnit.SECONDS);
+		//if the user has access to any domains, then mark the response as private as must be using AAP and responses will be different
+		if (domains.size() > 0) {
+			cacheControl.cachePrivate();
+		}
+		response.setHeader("Cache-Control", cacheControl.getHeaderValue());
+
 		return "samples";
 	}
 		
