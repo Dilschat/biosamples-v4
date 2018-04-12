@@ -134,7 +134,7 @@ public class SampleHtmlController {
 		Collections.sort(filtersList);
 
 		JsonLDDataset jsonLDDataset = jsonLDService.getBioSamplesDataset();
-		
+
 		model.addAttribute("text", text);
 		model.addAttribute("start", start);
 		model.addAttribute("rows", rows);
@@ -143,7 +143,7 @@ public class SampleHtmlController {
 		model.addAttribute("filters", filtersList);
 		model.addAttribute("paginations", getPaginations(pageSample, uriBuilder));
 		model.addAttribute("jsonLD", jsonLDService.jsonLDToString(jsonLDDataset));
-				
+
 		//TODO add "clear all facets" button
 		//TODO title of webpage
 		
@@ -155,7 +155,6 @@ public class SampleHtmlController {
 			cacheControl.cachePrivate();
 		}
 		response.setHeader("Cache-Control", cacheControl.getHeaderValue());
-		
 		return "samples";
 	}
 		
