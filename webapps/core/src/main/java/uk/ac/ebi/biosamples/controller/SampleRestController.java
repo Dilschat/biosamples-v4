@@ -73,6 +73,7 @@ public class SampleRestController {
 		}
 
 		Resource<Sample> sampleResource = sampleResourceAssembler.toResource(sample.get());
+		//TODO cache control
 		return sampleResource;
 	}
 
@@ -86,6 +87,7 @@ public class SampleRestController {
 					sample.getRelease(), sample.getUpdate(), sample.getCharacteristics(), sample.getRelationships(),
 					sample.getExternalReferences(), null, null, null);
 		}
+		//TODO cache control		
 		return sample;
 	}
 
