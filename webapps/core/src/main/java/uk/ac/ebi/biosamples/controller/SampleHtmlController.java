@@ -45,6 +45,7 @@ import java.net.URI;
 import java.time.ZoneOffset;
 import java.util.*;
 
+
 /**
  * Primary controller for HTML operations.
  * 
@@ -155,7 +156,6 @@ public class SampleHtmlController {
 			cacheControl.cachePrivate();
 		}
 		response.setHeader("Cache-Control", cacheControl.getHeaderValue());
-
 		return "samples";
 	}
 		
