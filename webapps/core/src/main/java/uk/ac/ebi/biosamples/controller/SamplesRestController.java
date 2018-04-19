@@ -151,14 +151,6 @@ public class SamplesRestController {
 			cacheControl.cachePrivate();
 		}
 
-
-		//Note - EBI load balancer does cache but doesn't add age header, so clients could cache up to twice this age
-		CacheControl cacheControl = CacheControl.maxAge(bioSamplesProperties.getBiosamplesCorePageCacheMaxAge(), TimeUnit.SECONDS);
-		//if the user has access to any domains, then mark the response as private as must be using AAP and responses will be different
-		if (domains.size() > 0) {
-			cacheControl.cachePrivate();
-		}
-
 		if (cursor != null) {
 
 			log.trace("This cursor = "+decodedCursor);
